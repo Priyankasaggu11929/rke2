@@ -26,7 +26,7 @@ RUN if [ "${ARCH}" = "amd64" ]; then \
     fi
 
 FROM registry.suse.com/bci/bci-base AS rpm-macros
-RUN zypper install -y systemd-rpm-macros
+RUN zypper ref && install -y systemd-rpm-macros
 
 # Dapper/Drone/CI environment
 FROM build AS dapper
@@ -116,29 +116,39 @@ RUN rm -vf /charts/*.sh /charts/*.md /charts/chart_versions.yaml
 # This image includes any host level programs that we might need. All binaries
 # must be placed in bin/ of the file image and subdirectories of bin/ will be flattened during installation.
 # This means bin/foo/bar will become bin/bar when rke2 installs this to the host
-FROM rancher/hardened-kubernetes:v1.32.0-rke2r1-build20241212 AS kubernetes
-FROM rancher/hardened-containerd:v1.7.23-k3s2-build20241203 AS containerd
-FROM rancher/hardened-crictl:v1.31.1-build20241011 AS crictl
-FROM rancher/hardened-runc:v1.2.4-build20250109 AS runc
+#FROM rancher/hardened-kubernetes:v1.32.0-rke2r1-build20241212 AS kubernetes
+#FROM rancher/hardened-containerd:v1.7.23-k3s2-build20241203 AS containerd
+#FROM rancher/hardened-crictl:v1.31.1-build20241011 AS crictl
+#FROM rancher/hardened-runc:v1.1.14-build20240910 AS runc
+
+FROM registry.suse.com/bci/bci-base AS rpm-packages
+# will replace the opensuse repo w/ an IBS repo from devel:Rancher:LTS, once packages are moved
+RUN zypper ar --refresh http://download.opensuse.org/tumbleweed/repo/oss/ openSUSE-Tumbleweed-OSS && \
+    zypper --gpg-auto-import-keys ref && zypper install -y \
+    runc \
+    containerd \
+    containerd-ctr \
+    # TODO: missing packages in SLE repos,
+    # kubernetes-client (kubectl) is available,
+    # kubelet and crictl not.
+    kubernetes-client \
+    kubernetes-kubelet \
+    cri-tools
 
 FROM scratch AS runtime-collect
-COPY --from=runc \
-    /usr/local/bin/runc \
+COPY --from=rpm-packages \
+    /usr/bin/runc \
+    /usr/bin/crictl \
+    /usr/bin/kubectl \
+    /usr/bin/kubelet \
+    /usr/sbin/containerd \
+    /usr/sbin/containerd-shim \
+    /usr/sbin/containerd-shim-runc-v1 \
+    /usr/sbin/containerd-shim-runc-v2 \
     /bin/
-COPY --from=crictl \
-    /usr/local/bin/crictl \
-    /bin/
-COPY --from=containerd \
-    /usr/local/bin/containerd \
-    /usr/local/bin/containerd-shim \
-    /usr/local/bin/containerd-shim-runc-v1 \
-    /usr/local/bin/containerd-shim-runc-v2 \
-    /usr/local/bin/ctr \
-    /bin/
-COPY --from=kubernetes \
-    /usr/local/bin/kubectl \
-    /usr/local/bin/kubelet \
-    /bin/
+COPY --from=rpm-packages \
+    /usr/sbin/containerd-ctr \
+    /bin/ctr
 COPY --from=charts \
     /charts/ \
     /charts/
