@@ -1,28 +1,39 @@
 ARG KUBERNETES_VERSION=dev
 
 # Build environment
-FROM rancher/hardened-build-base:v1.23.3b1 AS build
+# FROM rancher/hardened-build-base:v1.23.3b1 AS build
+# INFO(psaggu): below is a variant of hardened-build-base image,
+# built with opensuse-tumbleweed image as base, replacing
+# alpine base image & packages
+# TODO(psaggu) : missing packages from TW repos in SLE, needs to be
+# copied over to IBS project
+FROM rancher/hardened-build-base:latest AS build
 ARG DAPPER_HOST_ARCH
 ENV ARCH $DAPPER_HOST_ARCH
 RUN set -x && \
-    apk --no-cache add \
-    bash \
-    curl \
+    # apk --no-cache add \
+    zypper install -y \
+    # bash \
+    # curl \
     file \
-    git \
-    libseccomp-dev \
+    # git \
+    # libseccomp-dev \
+    libseccomp-devel \
     rsync \
     gcc \
-    bsd-compat-headers \
-    py-pip \
-    py3-pip \
+    # bsd-compat-headers \
+    libbsd-devel \
+    # py-pip \
+    # py3-pip \
+    python3-pip \
     pigz \
     tar \
-    yq \
+    # yq \
     helm
 
 RUN if [ "${ARCH}" = "amd64" ]; then \
-    	apk --no-cache add mingw-w64-gcc; \
+    	# apk --no-cache add mingw-w64-gcc; \
+    	zypper install -y mingw64-gcc; \
     fi
 
 FROM registry.suse.com/bci/bci-base AS rpm-macros
