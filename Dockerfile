@@ -4,7 +4,7 @@ ARG KUBERNETES_VERSION=dev
 # FROM rancher/hardened-build-base:v1.23.3b1 AS build
 # INFO(psaggu): below is a variant of hardened-build-base image,
 # built with opensuse-tumbleweed image as base, replacing
-# alpine base image & packages
+# alpine base image & packages. Change it with Leap 15.6 and test again.
 # TODO(psaggu) : missing packages from TW repos in SLE, needs to be
 # copied over to IBS project
 FROM rancher/hardened-build-base:latest AS build
