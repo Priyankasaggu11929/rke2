@@ -38,7 +38,7 @@ RUN if [ "${ARCH}" = "amd64" ]; then \
     fi
 
 FROM registry.suse.com/bci/bci-base AS rpm-macros
-RUN zypper ref && install -y systemd-rpm-macros
+RUN zypper ref && zypper install -y systemd-rpm-macros
 
 # Dapper/Drone/CI environment
 FROM build AS dapper
