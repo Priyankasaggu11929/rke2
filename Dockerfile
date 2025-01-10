@@ -65,14 +65,24 @@ RUN curl -sL https://dl.k8s.io/release/$( \
 
 RUN python3 -m pip install awscli
 RUN curl -sL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2
+# INFO(psaggu): since build base container (hardended-base image) is based on leap 15.6 now,
+# following section will pull packages via zypper rpm package repos.
+
 RUN set -x && \
-    apk --no-cache add \
-    libarchive-tools \
-    zstd \
+#    apk --no-cache add \
+    zypper install -y \
+    # libarchive-tools \
+    # zstd \
+    # INFO(psaggu) # — installing libarchive13, bsdtar for libarchive-tools
+    # bsdcpio, we don't have. Will see if it's being used - then package or drop.
+    # - zstd installation not needed, coming from hardened-base image 
+    bsdtar \
+    libarchive13 \
     jq \
     python3 && \
     if [ "${ARCH}" != "s390x" ] || [ "${GOARCH}" != "arm64" ]; then \
-    	apk add --no-cache rpm-dev; \
+        # apk add --no-cache rpm-dev; \
+    	zypper install -y rpm-devel; \
     fi
 
 RUN GOCR_VERSION="v0.20.2" && \
@@ -95,8 +105,11 @@ COPY --from=rpm-macros /usr/lib/rpm/macros.d/macros.systemd /usr/lib/rpm/macros.
 
 # Shell used for debugging
 FROM dapper AS shell
+# INFO(psaggu): since build base container (hardended-base image) is based on leap 15.6 now,
+# following section will pull packages via zypper rpm package repos.
 RUN set -x && \
-    apk --no-cache add \
+    # apk --no-cache add \
+    zypper install -y \
     bash-completion \
     iptables \
     less \
