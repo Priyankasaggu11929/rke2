@@ -22,6 +22,8 @@ RUN set -x && \
     libseccomp-devel \
     rsync \
     gcc \
+    # INFO(psaggu) — Jan 13, 2024 — installing glibc static c libraries
+    glibc-devel-static \
     # bsd-compat-headers \
     libbsd-devel \
     # py-pip \
@@ -48,6 +50,7 @@ ENV ARCH $DAPPER_HOST_ARCH
 ENV DAPPER_OUTPUT ./dist ./bin ./build
 ENV DAPPER_DOCKER_SOCKET true
 ENV DAPPER_TARGET dapper
+ENV SKIP_WINDOWS true
 ENV DAPPER_RUN_ARGS "--privileged --network host -v /tmp:/tmp -v rke2-pkg:/go/pkg -v rke2-cache:/root/.cache/go-build -v trivy-cache:/root/.cache/trivy"
 RUN if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then \
         VERSION=0.56.10 OS=linux && \
