@@ -50,7 +50,11 @@ GO_LDFLAGS="${STATIC_FLAGS} ${EXTRA_LDFLAGS}"
 echo ${DEBUG_GO_GCFLAGS}
 
 # passing boringcrypto to GOEXPERIMENT variable to build with goboring library
-GOEXPERIMENT=boringcrypto go build \
+# INFO(psaggu) — Jan 14, 2025 — golang installed via zypper rpm repos,
+# doesn't have BoringSSL symbols.
+# Disabling boringcrypto for testing
+# GOEXPERIMENT=boringcrypto go build \
+go build \
     -tags "${GO_BUILDTAGS}" \
     ${GO_GCFLAGS} ${GO_BUILD_FLAGS} \
     -o bin/${PROG} \
@@ -62,9 +66,10 @@ if type -a go-assert-static.sh >/dev/null 2>&1; then
     go-assert-static.sh bin/${PROG}
 fi
 
-if [ "${GOARCH}" = "amd64" ]; then
+# INFO(psaggu) — Jan 14, 2025 — disabling check for goboring symbols
+# if [ "${GOARCH}" = "amd64" ]; then
     # assert that rke2 is linked to goboring
-    if type -a go-assert-boring.sh >/dev/null 2>&1; then
-        go-assert-boring.sh bin/${PROG}
-    fi
-fi
+#    if type -a go-assert-boring.sh >/dev/null 2>&1; then
+#        go-assert-boring.sh bin/${PROG}
+#    fi
+# fi
