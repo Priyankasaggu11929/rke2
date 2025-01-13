@@ -3,7 +3,7 @@ ARG KUBERNETES_VERSION=dev
 # Build environment
 # FROM rancher/hardened-build-base:v1.23.3b1 AS build
 # INFO(psaggu): below is a variant of hardened-build-base image,
-# built with leap 15.6 image as base, replacing
+# built with Leap 15.6 image as base, replacing
 # alpine base image & packages. FYI, latest-leap-15-6 is local atm, and
 # just for testing.
 # TODO(psaggu) : missing packages from TW repos in SLE, needs to be
@@ -22,7 +22,7 @@ RUN set -x && \
     libseccomp-devel \
     rsync \
     gcc \
-    # INFO(psaggu) — Jan 13, 2024 — installing glibc static c libraries
+    # INFO(psaggu) — Jan 13, 2025 — installing glibc static c libraries
     glibc-devel-static \
     # bsd-compat-headers \
     libbsd-devel \
@@ -53,24 +53,35 @@ ENV DAPPER_TARGET dapper
 ENV SKIP_WINDOWS true
 ENV DAPPER_RUN_ARGS "--privileged --network host -v /tmp:/tmp -v rke2-pkg:/go/pkg -v rke2-cache:/root/.cache/go-build -v trivy-cache:/root/.cache/trivy"
 RUN if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then \
-        VERSION=0.56.10 OS=linux && \
-        curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
-        tar -xzf - -C /usr/local/bin; \
+        # VERSION=0.56.10 OS=linux && \
+        # curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
+        # tar -xzf - -C /usr/local/bin; \
+
+        # INFO(psaggu) — Jan 13, 2025 — install sonobuoy with zypper, as rpm package
+        # TODO (psaggu) : sonobuoy is more latest in Factory, leap needs a version bump
+        zypper install -y sonobuoy; \
     fi
 
-RUN curl -sL "https://github.com/cli/cli/releases/download/v2.53.0/gh_2.53.0_linux_${ARCH}.tar.gz" | \ 
-    tar --strip-components=2 -xzvf - -C /usr/local/bin gh_2.53.0_linux_${ARCH}/bin/gh;
+# INFO(psaggu) – Jan 13, 2025 — gh (github cli) is available as rpm package
+# RUN curl -sL "https://github.com/cli/cli/releases/download/v2.53.0/gh_2.53.0_linux_${ARCH}.tar.gz" | \
+#     tar --strip-components=2 -xzvf - -C /usr/local/bin gh_2.53.0_linux_${ARCH}/bin/gh;
 
+# TODO(psaggu) – Jan 14, 2025 - kubectl needs to be installed from kubernetes-client rpm package - need the latest available package in IBS devel project, when ready.
 RUN curl -sL https://dl.k8s.io/release/$( \
     curl -sL https://dl.k8s.io/release/stable.txt \
     )/bin/linux/${ARCH}/kubectl -o /usr/local/bin/kubectl && \
     chmod a+x /usr/local/bin/kubectl
+    # chmod a+x /usr/local/bin/kubectl; \
+    # INFO(psaggu) — Jan 14 — installing codespell with zypper in
+    # below step, with rest of zypper package install.
+    # pip install codespell
 
-RUN python3 -m pip install awscli
-RUN curl -sL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2
+# INFO(psaggu) — Jan 14 — installing aws-cli with zypper
+# RUN python3 -m pip install awscli
+# RUN curl -sL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2
+
 # INFO(psaggu): since build base container (hardended-base image) is based on leap 15.6 now,
 # following section will pull packages via zypper rpm package repos.
-
 RUN set -x && \
 #    apk --no-cache add \
     zypper install -y \
@@ -79,10 +90,17 @@ RUN set -x && \
     # INFO(psaggu) # — installing libarchive13, bsdtar for libarchive-tools
     # bsdcpio, we don't have. Will see if it's being used - then package or drop.
     # - zstd installation not needed, coming from hardened-base image 
+    aws-cli \
+    awk \
     bsdtar \
+    codespell \
+    docker-buildx \
+    gh \
+    golangci-lint \
     libarchive13 \
     jq \
-    python3 && \
+    python3 \
+    rpm-build && \
     if [ "${ARCH}" != "s390x" ] || [ "${GOARCH}" != "arm64" ]; then \
         # apk add --no-cache rpm-dev; \
     	zypper install -y rpm-devel; \
