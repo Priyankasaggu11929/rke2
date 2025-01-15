@@ -22,7 +22,7 @@ RUN set -x && \
     libseccomp-devel \
     rsync \
     gcc \
-    # INFO(psaggu) — Jan 13, 2025 — installing glibc static c libraries
+    # INFO(psaggu) — Jan 13, 2024 — installing glibc static c libraries
     glibc-devel-static \
     # bsd-compat-headers \
     libbsd-devel \
@@ -51,38 +51,31 @@ ENV DAPPER_OUTPUT ./dist ./bin ./build
 ENV DAPPER_DOCKER_SOCKET true
 ENV DAPPER_TARGET dapper
 ENV SKIP_WINDOWS true
-ENV FORCE_HOST_GO true
 ENV DAPPER_RUN_ARGS "--privileged --network host -v /tmp:/tmp -v rke2-pkg:/go/pkg -v rke2-cache:/root/.cache/go-build -v trivy-cache:/root/.cache/trivy"
 RUN if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then \
-        # VERSION=0.56.10 OS=linux && \
-        # curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
-        # tar -xzf - -C /usr/local/bin; \
-
-        # INFO(psaggu) — Jan 13, 2025 — install sonobuoy with zypper, as rpm package
-        # TODO (psaggu) : sonobuoy is more latest in Factory, leap needs a version bump
-        zypper install -y sonobuoy; \
+        VERSION=0.56.10 OS=linux && \
+        curl -sL "https://github.com/vmware-tanzu/sonobuoy/releases/download/v${VERSION}/sonobuoy_${VERSION}_${OS}_${ARCH}.tar.gz" | \
+        tar -xzf - -C /usr/local/bin; \
     fi
 
-# INFO(psaggu) – Jan 13, 2025 — gh (github cli) is available as rpm package
-# RUN curl -sL "https://github.com/cli/cli/releases/download/v2.53.0/gh_2.53.0_linux_${ARCH}.tar.gz" | \
+# INFO(psaggu) – Jan 13, 2024 — gh (github cli) is available as rpm package 
+# RUN curl -sL "https://github.com/cli/cli/releases/download/v2.53.0/gh_2.53.0_linux_${ARCH}.tar.gz" | \ 
 #     tar --strip-components=2 -xzvf - -C /usr/local/bin gh_2.53.0_linux_${ARCH}/bin/gh;
 
-# TODO(psaggu) – Jan 14, 2025 - kubectl needs to be installed from kubernetes-client rpm package - need the latest available package in IBS devel project, when ready.
 RUN curl -sL https://dl.k8s.io/release/$( \
     curl -sL https://dl.k8s.io/release/stable.txt \
     )/bin/linux/${ARCH}/kubectl -o /usr/local/bin/kubectl && \
-    chmod a+x /usr/local/bin/kubectl
-    # chmod a+x /usr/local/bin/kubectl; \
-    # INFO(psaggu) — Jan 14 — installing codespell with zypper in
+    chmod a+x /usr/local/bin/kubectl; \
+	# INFO(psaggu) — Jan 14 — installing codespell with zypper in
     # below step, with rest of zypper package install.
     # pip install codespell
 
 # INFO(psaggu) — Jan 14 — installing aws-cli with zypper
 # RUN python3 -m pip install awscli
-# RUN curl -sL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2
-
+RUN curl -sL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2
 # INFO(psaggu): since build base container (hardended-base image) is based on leap 15.6 now,
 # following section will pull packages via zypper rpm package repos.
+
 RUN set -x && \
 #    apk --no-cache add \
     zypper install -y \
@@ -97,7 +90,6 @@ RUN set -x && \
     codespell \
     docker-buildx \
     gh \
-    golangci-lint \
     libarchive13 \
     jq \
     python3 \
@@ -133,8 +125,6 @@ RUN set -x && \
     # apk --no-cache add \
     zypper install -y \
     bash-completion \
-    # INFO(psaggu) — Jan 13, 2025 — source dlv 
-    delve \
     iptables \
     less \
     psmisc \
@@ -143,13 +133,8 @@ RUN set -x && \
     sudo \
     vim
 # For integration tests
-# RUN go get github.com/onsi/ginkgo/v2 github.com/onsi/gomega/...
-# RUN GO111MODULE=off GOBIN=/usr/local/bin go get github.com/go-delve/delve/cmd/dlv
-# INFO(psaggu) — Jan 13, 2025 — 'go get' is no longer supported outside a module.
-# updated commands from https://onsi.github.io/ginkgo/#installing-ginkgo
-# WIP: package ginkgo and gomega in factory (by Jeff K.)
-# INFO(psaggu) — Jan 15, 2025 — disabling ginkgo & gomega go module install - for testing where these are required.
-# RUN go install github.com/onsi/ginkgo/v2/ginkgo@latest && go get github.com/onsi/gomega/...
+RUN go get github.com/onsi/ginkgo/v2 github.com/onsi/gomega/...
+RUN GO111MODULE=off GOBIN=/usr/local/bin go get github.com/go-delve/delve/cmd/dlv
 RUN echo 'alias abort="echo -e '\''q\ny\n'\'' | dlv connect :2345"' >> /root/.bashrc
 ENV PATH=/var/lib/rancher/rke2/bin:$PATH
 ENV KUBECONFIG=/etc/rancher/rke2/rke2.yaml
@@ -206,37 +191,6 @@ COPY --from=rpm-packages \
 COPY --from=charts \
     /charts/ \
     /charts/
-
-
-##########
-#FROM rancher/hardened-kubernetes:v1.32.0-rke2r1-build20241212 AS kubernetes
-#FROM rancher/hardened-containerd:v1.7.23-k3s2-build20241203 AS containerd
-#FROM rancher/hardened-crictl:v1.31.1-build20241011 AS crictl
-#FROM rancher/hardened-runc:v1.2.4-build20250109 AS runc
-
-#FROM scratch AS runtime-collect
-#COPY --from=runc \
-#    /usr/local/bin/runc \
-#    /bin/
-#COPY --from=crictl \
-#    /usr/local/bin/crictl \
-#    /bin/
-#COPY --from=containerd \
-#    /usr/local/bin/containerd \
-#    /usr/local/bin/containerd-shim \
-#    /usr/local/bin/containerd-shim-runc-v1 \
-#    /usr/local/bin/containerd-shim-runc-v2 \
-#    /usr/local/bin/ctr \
-#    /bin/
-#COPY --from=kubernetes \
-#    /usr/local/bin/kubectl \
-#    /usr/local/bin/kubelet \
-#    /bin/
-#COPY --from=charts \
-#    /charts/ \
-#    /charts/
-#########
-
 
 FROM scratch AS runtime
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/rancher/rke2-runtime"

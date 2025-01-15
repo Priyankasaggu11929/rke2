@@ -69,6 +69,12 @@ if [[ "${VERSION}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)([-+][a-zA-Z0-9.]+)?[-+]((rk
 fi
 
 DEPENDENCIES_URL="https://raw.githubusercontent.com/kubernetes/kubernetes/${KUBERNETES_VERSION}/build/dependencies.yaml"
-VERSION_GOLANG="go"$(curl -sL "${DEPENDENCIES_URL}" | yq e '.dependencies[] | select(.name == "golang: upstream version").version' -)
+# INFO(psaggu) — Jan 15, 2025 — bypassing the upstream  kubernetes go version check, in case of golang compiler installed via zypper repos.
+# VERSION_GOLANG="go"$(curl -sL "${DEPENDENCIES_URL}" | yq e '.dependencies[] | select(.name == "golang: upstream version").version' -)
+if [ -n "${FORCE_HOST_GO}" ]; then
+  VERSION_GOLANG="go"$(go version | awk '{print $3}' | sed 's/go//')
+else
+  VERSION_GOLANG="go"$(curl -sL "${DEPENDENCIES_URL}" | yq e '.dependencies[] | select(.name == "golang: upstream version").version' -)
+fi
 
 DOCKERIZED_VERSION="${VERSION/+/-}" # this mimics what kubernetes builds do
